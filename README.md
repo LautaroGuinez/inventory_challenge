@@ -1,5 +1,5 @@
-# inventory_challenge
-Este sistema gestiona inventario multidepósito y sincroniza el stock con canales de venta externos. Está diseñado para garantizar la consistencia ante concurrencia y la resiliencia ante fallos del 30% en APIs de terceros.
+# Inventory Challenge - API de Gestión de Inventario
+Este sistema gestiona inventario multidepósito y sincroniza el stock con canales de venta externos. Está diseñado para garantizar la consistencia ante concurrencia y la resiliencia ante fallos del 30% en APIs de terceros mediante estrategias de reintento asíncrono.
 
 # Stack Tecnológico
 Runtime: Node.js
@@ -8,99 +8,87 @@ Framework: Express.js
 
 ORM: Prisma (MySQL 8)
 
-Mensajería: Redis + BullMQ (Estrategia de Retries)
+Mensajería: Redis + BullMQ
 
 Infraestructura: Docker & Docker Compose
 
- Configuración de Entorno (.env)
-Crea un archivo .env en la raíz del proyecto. El sistema ya viene preconfigurado para funcionar con los servicios de Docker, pero podés ajustar estas variables según tu entorno local
+# Configuración de Entorno (.env)
+Crea un archivo .env en la raíz del proyecto. El sistema está preconfigurado para funcionar dentro de la red de Docker, pero puedes ajustar estas variables según tu necesidad local:
 
-# Conexión a la Base de Datos (MySQL)
-DATABASE_URL="mysql://root:admin1@localhost:3306/inventory_challenge"
-
-# Configuración del Servidor
+DATABASE_URL="mysql://root:admin1@db:3306/inventory_challenge"
 PORT=3000
-
-# Configuración de Redis (BullMQ)
-REDIS_HOST="127.0.0.1"
+REDIS_HOST="redis"
 REDIS_PORT=6379
-
-# URL del Canal Externo (Mock API)
 MOCK_API_URL="http://localhost:8080"
 
+# Instalación y Automatización
+El proyecto utiliza un enfoque Zero-Config. Al iniciar los contenedores, la aplicación espera la disponibilidad de la base de datos, aplica el esquema y carga los datos iniciales automáticamente.
 
- Instalación y "Warm-up" Automático
-El proyecto está configurado para ser Zero-Config. Al levantar Docker, el contenedor de la App espera a la base de datos, aplica las migraciones y carga los datos iniciales (Seed) automáticamente.
+Preparación del Mock API
+Antes de iniciar la infraestructura, asegúrate de tener el Mock API provisto en ejecución:
 
-1. Levantar el Mock API (Requisito Externo)
-Antes de iniciar, asegurate de tener corriendo el Mock provisto por el challenge:
+npm install
+npm start
 
-# Generalmente se corre en una terminal aparte
-npm i 
-npm start 
-
-
-
-2. Levantar la Infraestructura
+# Despliegue de Infraestructura
+Ejecuta el siguiente comando para levantar todos los servicios:
 
 docker compose up --build
-  Nota de automatización: El comando npm start dentro del contenedor ejecuta un setTimeout de 5s para esperar a MySQL, seguido de prisma db push y prisma db seed. No es necesario ejecutar comandos manuales de base de      datos.
 
-Guía de Pruebas (API Endpoints)
-A. Gestión de Inventario (CRUD Local)
-Crear Producto: POST /api/products (Crea la base: nombre, descripción).
+     Nota de inicialización: 
+     El proceso de arranque incluye un retraso programado para sincronizar con MySQL, seguido de los comandos npx prisma db push y npx prisma db seed. No se requiere intervención manual sobre la base de datos.
 
-Crear Variante: POST /api/variants (Define SKU, talle, color).
+# Guía de Pruebas (API Endpoints)
+Flujo de Configuración Inicial
+
+
+Crear Producto: POST /api/products (Define datos maestros).
+
+Crear Variante: POST /api/variants (Define SKU, color y talle).
 
 Crear Depósito: POST /api/warehouses (Define ubicación física).
 
-B. Vinculación con Canales (Core)
-Para que el sistema sepa a dónde enviar el stock, vinculamos la variante local con la "Publicación" del canal:
-  
-1. Registrar Publicación:
-POST /api/publications
+# Vinculación de Canales
 
-JSON
+Para habilitar la sincronización, asocia la variante local con la publicación externa:
+
+Registrar Publicación: POST /api/publications
 {
-  "mock_id": "PUB-001",
-  "external_id": "ML-REM-BAS-NEG",
-  "channel_name": "mercadolibre"
+"mock_id": "PUB-001",
+"external_id": "ML-REM-BAS-NEG",
+"channel_name": "mercadolibre"
 }
 
-2. Vincular Variante:
-POST /api/publications/link-variant
-
-JSON
+Vincular Variante: POST /api/publications/link-variant
 {
-  "publication_id": 1,
-  "variant_id": 1,
-  "external_variant_id": "PUB-001-V1"
+"publication_id": 1,
+"variant_id": 1,
+"external_variant_id": "PUB-001-V1"
 }
 
-C. El Flujo Crítico (Actualización de Stock)
+# Flujo Crítico de Actualización de Stock
+Para probar la resiliencia del sistema, utiliza el siguiente endpoint:
+
 PUT /api/variants/:id/stock
-
-JSON
 {
-  "warehouse_id": 1,
-  "quantity": 50
+"warehouse_id": 1,
+"quantity": 50
 }
 
-¿Qué sucede al ejecutar esto?
+Proceso Interno:
 
-Se actualiza la tabla Stock en la DB.
+Atomicidad: Se actualiza el stock y se registra el log de inventario en una única transacción de Prisma.
 
-Se genera un InventoryLog automático.
+Cálculo: Se obtiene el stock total consolidado de todos los depósitos.
 
-Se calcula el stock total (suma de todos los depósitos).
+Sincronización: Se encola un Job en BullMQ para actualizar el canal externo.
 
-Se dispara un Job al Worker.
+Resiliencia: Si el Mock API devuelve error 503, el Worker aplicará reintentos automáticos (Exponential Backoff) visibles en los logs de Docker (docker compose logs -f app).
 
-Verificación: Revisá los logs de Docker (docker compose logs -f app) para ver los reintentos automáticos si el Mock responde 503.
+# Puntos de Mejora (Roadmap)
+Batch Updates: Implementar un endpoint de carga masiva que optimice las transacciones de base de datos.
 
- Puntos de Mejora (Roadmap)
-Batch Updates: Implementar un endpoint de carga masiva que optimice las transacciones de base de datos mediante updateMany.
+Monitoreo de Colas: Integrar una interfaz como Bull-board para visualizar el estado de los Jobs.
 
-Monitoreo de Colas: Integrar Bull-board para visualizar en tiempo real qué jobs están fallando por el 30% de error del Mock.
 
-Validación de Esquema: Agregar Zod o Joi para validar los cuerpos de las peticiones antes de llegar al Service.
+
