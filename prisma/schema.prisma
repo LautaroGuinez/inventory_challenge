@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  base_sku    String?   @unique
+  base_price  Decimal?  @db.Decimal(10, 2)
+  created_at  DateTime? @default(now())
+
+  variants    Variant[]
+}
+
+model Variant {
+  id          Int       @id @default(autoincrement())
+  product_id  Int
+  sku         String    @unique
+  title       String?
+  color       String?
+  size        String?
+  created_at  DateTime? @default(now())
+
+  product     Product   @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  stocks      Stock[]
+  publication_variants PublicationVariant[]
+  inventory_logs InventoryLog[]
+}
+
+model Warehouse {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  name        String
+  created_at  DateTime? @default(now())
+
+  stocks      Stock[]
+  inventory_logs InventoryLog[]
+}
+
+model Stock {
+  id           Int       @id @default(autoincrement())
+  variant_id   Int
+  warehouse_id Int
+  quantity     Int       @default(0)
+  updated_at   DateTime? @updatedAt
+
+  variant      Variant   @relation(fields: [variant_id], references: [id], onDelete: Cascade)
+  warehouse    Warehouse @relation(fields: [warehouse_id], references: [id], onDelete: Cascade)
+
+  @@unique([variant_id, warehouse_id])
+}
+
+model Publication {
+  id           Int      @id @default(autoincrement())
+  mock_id      String   @unique
+  external_id  String
+  channel_name String?
+  created_at   DateTime? @default(now())
+  status_id    Int      @default(1) 
+  status       PublicationStatus @relation(fields: [status_id], references: [id])
+  publication_variants PublicationVariant[]
+}
+
+model PublicationStatus {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique 
+  description String?
+  
+  publications Publication[]
+}
+
+model PublicationVariant {
+  id                   Int       @id @default(autoincrement())
+  publication_id       Int
+  variant_id           Int
+  external_variant_id  String
+
+  publication          Publication @relation(fields: [publication_id], references: [id], onDelete: Cascade)
+  variant              Variant     @relation(fields: [variant_id], references: [id], onDelete: Cascade)
+
+  @@unique([publication_id, variant_id])
+}
+
+model InventoryLog {
+  id              Int      @id @default(autoincrement())
+  variant_id      Int
+  warehouse_id    Int
+  action_id       Int      
+  prev_quantity   Int      @default(0)
+  new_quantity    Int
+  total_after     Int      
+  created_at      DateTime @default(now())
+
+  
+  variant      Variant          @relation(fields: [variant_id], references: [id])
+  warehouse    Warehouse        @relation(fields: [warehouse_id], references: [id])
+  action_type  InventoryAction  @relation(fields: [action_id], references: [id])
+}
+
+model InventoryAction {
+  id          Int            @id @default(autoincrement())
+  name        String         @unique 
+  description String?       
+  logs        InventoryLog[]
+}
