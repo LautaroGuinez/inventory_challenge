@@ -1,4 +1,4 @@
-Uso de una Cola de Mensajes
+# Uso de una Cola de Mensajes
 
 1. Contexto
 La API del marketplace externo (Mock 8080) es inestable (tiene una tasa de error del 30%) y puede presentar latencias elevadas. Realizar llamadas HTTP directas desde el flujo principal de la aplicación bloquearía los hilos de ejecución, degradando la experiencia del usuario y aumentando el riesgo de pérdida de datos si la llamada falla definitivamente.
@@ -12,10 +12,8 @@ Pros (+): Mejora drástica en el tiempo de respuesta de la API. Resiliencia medi
 Contras (-): Introduce una dependencia adicional (Redis) y complejidad en la infraestructura. El sistema pasa a ser eventualmente consistente (el stock en el marketplace puede tardar unos segundos en igualarse al local).
 
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-Gestión de Stock Mediante Agregación en Tiempo Real
+# Gestión de Stock Mediante Agregación en Tiempo Real
 
 1. Contexto
 El stock de una variante puede estar distribuido en múltiples depósitos físicamente distintos. Necesitamos una forma de informar el stock total disponible a los canales de venta sin riesgo de que ese valor se desfase por errores de cálculo manuales o actualizaciones parciales.
@@ -29,10 +27,8 @@ Pros (+): Garantiza que el stock informado sea siempre la Fuente Única de Verda
 Contras (-): Impacto mínimo en el rendimiento por realizar una operación de suma en la DB. A gran escala (millones de depósitos por variante), podría requerir optimización mediante índices o vistas materializadas.
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-Tabla Intermedia PublicationVariant
+# Tabla Intermedia PublicationVariant
 
 1. Contexto
 Un producto físico (variante) no tiene una relación 1:1 con su publicación en internet. Una misma remera puede estar publicada en varios canales (Mercado Libre, Tiendanube) con diferentes IDs externos, pero consumiendo el mismo stock físico.
