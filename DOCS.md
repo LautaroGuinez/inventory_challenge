@@ -42,7 +42,6 @@ Pros (+): Soporte nativo para estrategias Omnicanal. Facilita la trazabilidad (s
 Contras (-): Requiere realizar un JOIN (o include en Prisma) adicional para obtener la información completa, aumentando ligeramente la complejidad de las consultas de lectura.
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Auditoría de Inventario
 
@@ -56,6 +55,3 @@ Implementar una tabla de Auditoría Inmutable (InventoryLog). Cada vez que se mo
 Pros (+): Permite realizar trazabilidad total (Forensics). Facilita la creación de reportes históricos de movimientos de mercadería. Brinda seguridad al negocio ante reclamos de stock mal informado.
 
 Contras (-): Aumento en el volumen de datos de la base de datos (la tabla crece con cada movimiento). Requiere una transacción de escritura adicional en cada operación de stock.
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
