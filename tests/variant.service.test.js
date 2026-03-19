@@ -42,12 +42,16 @@ const mockTx = {
 
 const mockTransaction = jest.fn((cb) => cb(mockTx));
 
+let mockPrismaInstance;
 jest.mock('@prisma/client', () => {
   return {
-    PrismaClient: jest.fn().mockImplementation(() => ({
-      $transaction: mockTransaction,
-      publication: { create: jest.fn() },
-    })),
+    PrismaClient: jest.fn().mockImplementation(() => {
+      mockPrismaInstance = {
+        $transaction: mockTransaction,
+        publication: { create: jest.fn() },
+      };
+      return mockPrismaInstance;
+    }),
   };
 });
 
@@ -293,7 +297,7 @@ describe('publication flow', () => {
 
   test('createPublication crea correctamente con los campos del mock channel', async () => {
     
-    const prismaInstance = require('@prisma/client').PrismaClient.mock.results[0].value;
+    const prismaInstance = mockPrismaInstance;
     prismaInstance.publication.create.mockResolvedValue({
       id: 1,
       mock_id: 'PUB-001',

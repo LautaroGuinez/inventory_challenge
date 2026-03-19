@@ -6,7 +6,7 @@
    "start": "node -e 'setTimeout(() => {}, 5000)' && npx prisma db push && npx prisma db seed && node server.js" ,
     "seed": "npx prisma db seed",
     "migrate": "npx prisma migrate dev",
-    "test": "jest --testPathPattern=tests/ --forceExit"
+    "test": "npx jest --testPathPatterns=tests/ --forceExit"
   },
   "keywords": [],
   "author": "",
