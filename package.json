@@ -5,7 +5,8 @@
   "scripts": {
    "start": "node -e 'setTimeout(() => {}, 5000)' && npx prisma db push && npx prisma db seed && node server.js" ,
     "seed": "npx prisma db seed",
-    "migrate": "npx prisma migrate dev"
+    "migrate": "npx prisma migrate dev",
+    "test": "jest --testPathPattern=tests/ --forceExit"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
     "prisma": "^6.19.2"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "nodemon": "^3.1.14"
   },
   "prisma": { 
