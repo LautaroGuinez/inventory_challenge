@@ -55,3 +55,18 @@ Implementar una tabla de Auditoría Inmutable (InventoryLog). Cada vez que se mo
 Pros (+): Permite realizar trazabilidad total (Forensics). Facilita la creación de reportes históricos de movimientos de mercadería. Brinda seguridad al negocio ante reclamos de stock mal informado.
 
 Contras (-): Aumento en el volumen de datos de la base de datos (la tabla crece con cada movimiento). Requiere una transacción de escritura adicional en cada operación de stock.
+
+
+
+# Bloqueo Pesimista para Manejo de Concurrencia
+
+1. Contexto
+El enunciado describe explícitamente el escenario de múltiples operadores actualizando el stock del mismo depósito en simultáneo. Con el nivel de aislamiento por defecto de MySQL (Read Committed), dos transacciones concurrentes sobre la misma variante pueden ejecutar este flujo de forma solapada: ambas leen el mismo `prev_quantity`, ambas hacen el upsert (la segunda sobreescribe a la primera sin saber que ocurrió), y el aggregate puede calcularse sobre un estado parcialmente escrito por la transacción paralela. El resultado son logs de auditoría con valores incorrectos y, en el peor caso, propagaciones de stock erróneo a los canales de venta.
+
+2. Decisión
+Implementar bloqueo pesimista mediante `SELECT ... FOR UPDATE` al inicio de cada transacción de stock, bloqueando la fila de la tabla `Variant` correspondiente. Se bloquea el registro padre (Variant) en lugar del hijo (Stock) por dos razones: (a) la fila de Stock puede no existir aún en el primer upsert (no hay fila que lockear), y (b) bloquear el padre serializa todas las operaciones sobre cualquier depósito de esa variante, garantizando que el aggregate siempre lea un estado completamente escrito. Para el endpoint de batch, además se ordenan los ítems por `variant_id` ascendente antes de adquirir locks, eliminando el riesgo de deadlock entre dos batches concurrentes que procesen las mismas variantes en distinto orden.
+
+3. Consecuencias
+Pros (+): Elimina el problema de lost updates y garantiza que los logs de auditoría reflejen valores correctos. El aggregate calcula siempre el stock real. Los locks son a nivel de fila, por lo que variantes distintas no se bloquean entre sí (alta concurrencia entre variantes distintas).
+
+Contras (-): Requests concurrentes sobre la misma variante se serializan, aumentando ligeramente la latencia bajo alta contención en ese recurso. El uso de `$queryRaw` acopla el código a la sintaxis SQL de MySQL. Una alternativa sin SQL crudo sería usar `isolationLevel: Serializable` en la transacción de Prisma, pero eso serializa todas las lecturas de la transacción con un overhead mayor.

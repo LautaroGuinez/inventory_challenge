@@ -6,7 +6,9 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_DATABASE: inventario_db
+      MYSQL_DATABASE: inventory_challenge
+      MYSQL_USER: challenge_user
+      MYSQL_PASSWORD: challenge_pass
       MYSQL_ROOT_PASSWORD: root_password
     ports:
       - "3306:3306"
@@ -29,7 +31,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=mysql://root:root_password@db:3306/inventario_db
+      - DATABASE_URL=mysql://challenge_user:challenge_pass@db:3306/inventory_challenge
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - MOCK_API_URL=http://host.docker.internal:8080 

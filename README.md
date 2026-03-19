@@ -15,7 +15,7 @@ Infraestructura: Docker & Docker Compose
 # Configuración de Entorno (.env)
 Crea un archivo .env en la raíz del proyecto. El sistema está preconfigurado para funcionar dentro de la red de Docker, pero puedes ajustar estas variables según tu necesidad local:
 
-DATABASE_URL="mysql://root:admin1@db:3306/inventory_challenge"
+DATABASE_URL="mysql://challenge_user:challenge_pass@db:3306/inventory_challenge"
 PORT=3000
 REDIS_HOST="redis"
 REDIS_PORT=6379
@@ -59,7 +59,7 @@ Registrar Publicación: POST /api/publications
 "channel_name": "mercadolibre"
 }
 
-Vincular Variante: POST /api/publications/link-variant
+Vincular Variante: POST /api/publications/link
 {
 "publication_id": 1,
 "variant_id": 1,
