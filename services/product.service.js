@@ -4,15 +4,15 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.createProduct = async (data) => {
-  const { name, description, baseSku, basePrice, variants } = data;
+  const { name, description, base_sku, base_price, variants } = data;
 
   return await prisma.$transaction(async (tx) => {
     const product = await tx.product.create({
       data: {
         name,
         description,
-        baseSku,
-        basePrice,
+        base_sku,
+        base_price,
       },
     });
 
@@ -23,7 +23,7 @@ exports.createProduct = async (data) => {
           title: v.title,
           color: v.color,
           size: v.size,
-          productId: product.id
+          product_id: product.id
         }))
       });
     }
@@ -42,5 +42,20 @@ exports.getProductById = async (id) => {
   return prisma.product.findUnique({
     where: { id: Number(id) },
     include: { variants: true }
+  });
+};
+
+exports.updateProduct = async (id, data) => {
+  const { name, description, base_sku, base_price } = data;
+  return prisma.product.update({
+    where: { id: Number(id) },
+    data: { name, description, base_sku, base_price },
+    include: { variants: true }
+  });
+};
+
+exports.deleteProduct = async (id) => {
+  return prisma.product.delete({
+    where: { id: Number(id) }
   });
 };

@@ -3,8 +3,12 @@ const warehouseService = require('../services/warehouse.service');
 
 exports.create = async (req, res) => {
   try {
+    const { code, name } = req.body;
+    if (!code || !name) {
+      return res.status(400).json({ error: 'Los campos code y name son obligatorios' });
+    }
     const warehouse = await warehouseService.createWarehouse(req.body);
-    res.json(warehouse);
+    res.status(201).json({ status: 'success', data: warehouse });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -16,8 +20,15 @@ exports.getAll = async (req, res) => {
 };
 
 exports.getById = async (req, res) => {
-  const data = await warehouseService.getWarehouseById(req.params.id);
-  res.json(data);
+  try {
+    const data = await warehouseService.getWarehouseById(req.params.id);
+    if (!data) {
+      return res.status(404).json({ status: 'error', message: 'Depósito no encontrado' });
+    }
+    res.json({ status: 'success', data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 exports.update = async (req, res) => {
