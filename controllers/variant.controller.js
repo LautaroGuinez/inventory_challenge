@@ -51,6 +51,10 @@ exports.updateStock = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    const { product_id, sku } = req.body;
+    if (!product_id || !sku) {
+      return res.status(400).json({ error: 'Los campos product_id y sku son obligatorios' });
+    }
     const variant = await variantService.createVariant(req.body);
     res.status(201).json({ status: 'success', data: variant });
   } catch (error) {
@@ -95,5 +99,34 @@ exports.getLogs = async (req, res) => {
     res.status(200).json({ status: 'success', data: logs });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+exports.batchUpdateStock = async (req, res) => {
+  try {
+    const items = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Se requiere un array de items no vacío' });
+    }
+
+    for (const item of items) {
+      if (!item.variant_id || !item.warehouse_id || item.quantity === undefined) {
+        return res.status(400).json({ error: 'Cada item requiere variant_id, warehouse_id y quantity' });
+      }
+      if (isNaN(item.quantity) || Number(item.quantity) < 0) {
+        return res.status(400).json({ error: 'quantity debe ser un número no negativo' });
+      }
+    }
+
+    const result = await variantService.batchUpdateStock(items);
+    return res.status(200).json({
+      status: 'success',
+      message: `${result.processed} items procesados, ${result.queued_sync_jobs} jobs de sincronización encolados.`,
+      data: result
+    });
+  } catch (error) {
+    console.error('[BatchController Error]:', error.message);
+    return res.status(500).json({ error: 'Error en batch update', message: error.message });
   }
 };

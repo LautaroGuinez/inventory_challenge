@@ -15,6 +15,10 @@ exports.create = async (req, res) => {
 
 exports.linkVariant = async (req, res) => {
   try {
+    const { publication_id, variant_id, external_variant_id } = req.body;
+    if (!publication_id || !variant_id || !external_variant_id) {
+      return res.status(400).json({ error: 'publication_id, variant_id y external_variant_id son obligatorios' });
+    }
     const link = await publicationService.linkVariantToPublication(req.body);
     res.status(200).json({ 
       status: 'success', 
